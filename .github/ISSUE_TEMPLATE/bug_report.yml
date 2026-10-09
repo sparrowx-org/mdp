@@ -1,0 +1,61 @@
+name: Bug 报告
+description: 报告一个 mdp 的问题
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        谢谢反馈！显示器相关的问题请尽量附上 `mdp current` 和 `mdp --json current` 的输出。
+
+  - type: input
+    id: version
+    attributes:
+      label: mdp 版本
+      placeholder: "mdp 0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: 安装方式
+      options:
+        - brew install
+        - install.sh (curl)
+        - cargo install
+        - 从源码编译
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: macOS 版本
+      placeholder: "macOS 15.6 (24G80) · Apple M5"
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: 显示器现状
+      description: 粘贴 `mdp current` 的输出
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤
+      description: 你执行了什么命令 / 按了什么键，期望什么、实际什么
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: 补充信息
+      description: 相关日志、方案文件片段（`mdp show <名字>`）等
+      render: text

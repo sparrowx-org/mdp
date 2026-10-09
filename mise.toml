@@ -1,0 +1,28 @@
+[tools]
+rust = "1.99.0"
+
+[tasks.build]
+description = "编译 release 版本"
+run = "cargo build --release"
+
+[tasks.test]
+description = "跑单元测试"
+run = "cargo test"
+
+[tasks.lint]
+description = "clippy 严格模式"
+run = "cargo clippy --all-targets -- -D warnings"
+
+[tasks.check]
+description = "测试 + lint"
+depends = ["test", "lint"]
+
+[tasks.demo]
+description = "用临时方案文件试玩，不动真实配置"
+run = """
+MDP_CONFIG=/tmp/mdp-demo/solutions.toml sh -c '
+  rm -rf /tmp/mdp-demo
+  mdp store demo "示例方案" || true
+  mdp list
+'
+"""

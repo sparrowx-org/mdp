@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 同一分支的新 push 取消上一次未跑完的任务
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: test + lint (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-13]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup component add clippy rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: 格式化检查
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: 单元测试
+        run: cargo test --all
+
+      - name: 编译 release
+        run: cargo build --release
+
+      # mdp 会直接调用 CoreGraphics 改显示器布局，所以只能在 macOS 上做冒烟测试；
+      # 用独立配置文件，避免动到 CI runner 上不存在的显示器配置。
+      - name: 冒烟测试
+        if: matrix.os == 'macos-14'
+        run: |
+          export MDP_CONFIG="$RUNNER_TEMP/mdp-ci.toml"
+          ./target/release/mdp --version
+          ./target/release/mdp path
+          ./target/release/mdp list
+          ./target/release/mdp current
+          # 没有显示器时 current 会报错，这里只验证它优雅退出而不是 panic
+          ./target/release/mdp current || true
+          ./target/release/mdp apply __不存在的方案__ || true

@@ -1,0 +1,32 @@
+[workspace]
+members = ["cargo:."]
+
+# cargo-dist 配置：负责出二进制、Release、Homebrew tap、install.sh
+# 文档：https://opensource.axo.dev/cargo-dist/book/
+[dist]
+# CI 里使用的 cargo-dist 版本（改了要跟着升）
+cargo-dist-version = "0.33.0"
+
+# CI 后端
+ci = "github"
+
+# 只出 macOS 产物：x86_64 可以在 macos runner 上直接交叉编译
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]
+
+# 生成 install.sh（curl | sh 一行安装，给不用 brew 的人）
+installers = ["shell"]
+
+# Release 页展示 SHA256 校验和
+checksum = "sha256"
+
+# 不在 CI 里重新跑测试，测试交给 .github/workflows/ci.yml，避免每次发版多等几分钟
+
+# 给产物生成并附加 GitHub artifact attestation
+github-attestations = true
+
+# 一条命令装上：brew install define9/mdp/mdp
+# 需要先建一个空的 define9/homebrew-mdp 仓库（cargo-dist 会往里推 Formula/mdp.rb）
+tap = "define9/homebrew-mdp"
+
+# 发版时顺便把 Homebrew formula 推到上面那个 tap 仓库
+publish-jobs = ["homebrew"]
