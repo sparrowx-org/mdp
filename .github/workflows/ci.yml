@@ -17,7 +17,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-13]
+        # 只用 arm64 runner：GitHub 的 macos-13（Intel）长期排队拿不到机器，
+        # Intel 覆盖靠下面的 cross-compile job，而不是靠 Intel runner。
+        os: [macos-15, macos-14]
     steps:
       - uses: actions/checkout@v4
 
@@ -41,16 +43,37 @@ jobs:
       - name: 编译 release
         run: cargo build --release
 
-      # mdp 会直接调用 CoreGraphics 改显示器布局，所以只能在 macOS 上做冒烟测试；
-      # 用独立配置文件，避免动到 CI runner 上不存在的显示器配置。
+      # mdp 会直接调 CoreGraphics 改显示器布局，只能在 macOS 上做冒烟测试。
+      # 用独立的临时配置文件，避免动到 runner 上的配置。
       - name: 冒烟测试
-        if: matrix.os == 'macos-14'
         run: |
           export MDP_CONFIG="$RUNNER_TEMP/mdp-ci.toml"
           ./target/release/mdp --version
           ./target/release/mdp path
           ./target/release/mdp list
           ./target/release/mdp current
-          # 没有显示器时 current 会报错，这里只验证它优雅退出而不是 panic
-          ./target/release/mdp current || true
+          # runner 上没有多显示器布局时 current 会报错，这里只验证它优雅退出而不是 panic
           ./target/release/mdp apply __不存在的方案__ || true
+
+  # Intel 用户拿不到 runner，也要保证 x86_64 至少能编译出来（发版产物包含它）
+  cross-compile:
+    name: cross-compile x86_64
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: 编译 x86_64-apple-darwin
+        run: |
+          rustup target add x86_64-apple-darwin
+          cargo build --release --target x86_64-apple-darwin
+
+      - name: 校验产物架构
+        run: |
+          file target/x86_64-apple-darwin/release/mdp | tee /dev/stderr | grep -q 'x86_64'
