@@ -2,7 +2,7 @@
 
 # mdp
 
-**macOS 多显示器布局管理 —— 把「每块屏放哪、哪块是主屏」存成方案，敲 `mdp` 选一下回车就切过去。**
+**Save your macOS multi-display layouts and switch them with one key — positions and primary display included.**
 
 [![CI](https://github.com/sparrowx/mdp/actions/workflows/ci.yml/badge.svg)](https://github.com/sparrowx/mdp/actions/workflows/ci.yml)
 [![Release](https://github.com/sparrowx/mdp/actions/workflows/release.yml/badge.svg)](https://github.com/sparrowx/mdp/releases/latest)
@@ -11,42 +11,39 @@
 
 </div>
 
-```
-$ mdp
-Use ← → ↑ ↓ h j k l to navigate, Enter applies, d deletes, r reloads, q quits
-❯ 1 * work                │ work  ★
-  2   desk                │ 外接为主屏，笔记本放右边
-                          │
-                          │ ★ External Display · 1920x1080
-                          │     (    0,    0)
-                          │   Built-in Display · 3024x1964
-                          │     ( 1920,  268)
-```
+**[English](README.md) | [简体中文](README.zh-CN.md)**
 
-按 `↓` 选一个方案，右侧实时显示每块屏会移到哪、往哪个方向移；按 `Enter` 立即切换。
+![mdp picker](docs/images/preview.png)
+
+Run `mdp`, move with `↓`, press `Enter`. The right pane shows exactly where every
+display will end up, and `→` marks the ones that actually move.
+
+The picker renders **inline**: no alternate screen, no clearing. It draws right
+under your prompt and stays in the scrollback afterwards, so you can scroll up
+and read it later.
 
 ---
 
-## 特性
+## Features
 
-- **一键切布局** —— 无参数 `mdp` 打开选择器，方向键选、回车生效，没有多余步骤
-- **连主屏一起存** —— 主屏 = 原点在 `(0,0)` 的那块屏，切方案时主屏跟着变，不用再去系统设置里点「主显示器」
-- **零权限** —— 只用 CoreGraphics 的**公开 API**，不需要「辅助功能」「屏幕录制」授权
-- **原子切换** —— 整个布局在一个事务里提交，中途失败自动回滚，不会留下半截布局
-- **会说实话** —— macOS 会自作主张消除空隙和重叠，应用后 mdp 回读实际位置并明确告诉你哪块屏没落在期望点
-- **认得出设备** —— 用持久 UUID 标识显示器，换扩展坞、插拔、重启都不会认错屏
-- **脚本友好** —— 所有子命令支持 `--json`；非交互终端下 `mdp` 会提示改用 `mdp apply`
+- **One key to switch** — run `mdp`, pick with the arrows, press Enter. Nothing else.
+- **Primary display included** — macOS defines the primary display as the one at origin `(0,0)`, so switching solutions switches which display is primary. No more dragging the menu bar in System Settings.
+- **No permissions** — only **public** CoreGraphics APIs. No Accessibility or Screen Recording prompt.
+- **Atomic switch** — the whole layout is committed in one transaction; any failure rolls back, so you never get half a layout.
+- **Tells you the truth** — macOS silently removes gaps and overlaps. mdp reads the real positions back afterwards and tells you exactly which display did not land where you wanted.
+- **Knows your hardware** — displays are identified by a persistent UUID, so docks, cables and reboots do not confuse it.
+- **Scriptable** — every subcommand takes `--json`; outside a TTY `mdp` tells you to use `mdp apply` instead.
 
-## 安装
+## Install
 
-### Homebrew（推荐）
+### Homebrew (recommended)
 
 ```bash
 brew tap sparrowx/tap
 brew install sparrowx/tap/mdp
 ```
 
-一条命令版本（Homebrew 会自动 tap）：
+Homebrew taps it for you if you skip the first line:
 
 ```bash
 brew install sparrowx/tap/mdp
@@ -58,7 +55,7 @@ brew install sparrowx/tap/mdp
 curl -fsSL https://raw.githubusercontent.com/sparrowx/mdp/main/install.sh | sh
 ```
 
-### 从源码
+### From source
 
 ```bash
 git clone https://github.com/sparrowx/mdp.git
@@ -66,56 +63,54 @@ cd mdp
 cargo install --path .
 ```
 
-> 需要 Rust 1.85+。`cargo install mdp`（crates.io）待发布后可用。
+> Requires Rust 1.85+. `cargo install mdp` from crates.io will work once published.
 
-## 快速开始
+## Quick start
 
 ```bash
-# 1. 把你现在的布局（双屏、外接在左、主屏是外接）存下来
-$ mdp store work "外接为主屏，笔记本放右边"
+# 1. save the layout you are using right now
+$ mdp store work "external as primary, laptop on the right"
 
-# 2. 临时改成别的布局
+# 2. rearrange the displays however you like in System Settings
 
-# 3. 随时切回来
+# 3. switch back whenever you want
 $ mdp
 ```
 
-方案存在 `~/.config/mdp/solutions.toml`，纯文本，可以直接进 dotfiles 跟着 git 同步。
+Solutions live in `~/.config/mdp/solutions.toml` — plain text, safe to put in dotfiles and sync with git.
 
-## 命令
+## Commands
 
-| 命令 | 作用 |
+| Command | Description |
 | --- | --- |
-| `mdp` | 打开交互选择器（方向键选，回车应用） |
-| `mdp store <名字> [描述]` | 存下当前布局（同名需 `--force`） |
-| `mdp list` | 列出方案，`*` 表示当前正在使用 |
-| `mdp apply <名字>` | 应用方案（别名 `use`） |
-| `mdp apply <名字> --dry-run` | 只看会怎么动，不真改 |
-| `mdp apply <名字> --session` | 只对本次登录生效，不写永久配置 |
-| `mdp current` | 显示当前布局 |
-| `mdp show <名字>` | 方案详情 |
-| `mdp rename <旧> <新>` | 重命名 |
-| `mdp delete <名字>` | 删除（别名 `rm` / `remove`） |
-| `mdp edit` | 用 `$EDITOR` 打开方案文件 |
-| `mdp path` | 打印方案文件路径 |
+| `mdp` | Open the interactive picker (arrows to move, Enter to apply) |
+| `mdp store <name> [description]` | Save the current layout (add `--force` to overwrite) |
+| `mdp list` | List solutions, `*` marks the one currently in use |
+| `mdp apply <name>` | Apply a solution (alias `use`) |
+| `mdp apply <name> --dry-run` | Show what would change without touching anything |
+| `mdp apply <name> --session` | Apply for this login session only, do not persist |
+| `mdp current` | Show the current layout |
+| `mdp show <name>` | Show one solution in detail |
+| `mdp rename <old> <new>` | Rename a solution |
+| `mdp delete <name>` | Delete a solution (aliases `rm`, `remove`) |
+| `mdp edit` | Open the solution file in `$EDITOR` |
+| `mdp path` | Print the solution file path |
 
-全局选项：`--config <路径>`、`--json`。
+Global options: `--config <path>`, `--json`.
 
-### 选择器按键
+### Picker keys
 
-| 按键 | 作用 |
+| Key | Action |
 | --- | --- |
-| `↑` `↓` `←` `→` / `hjkl` | 移动选中项 |
-| `1`–`9` | 选中第 N 项并直接应用 |
-| `PageUp` `PageDown` / `Home` `End` | 翻页 / 跳首尾 |
-| `Enter` | 应用选中方案 |
-| `d` | 删除选中方案（需再按一次 `d` 确认） |
-| `r` | 重新读取方案文件（外部改过之后用） |
-| `q` / `Esc` / `Ctrl-C` | 取消，不动显示器 |
+| `↑` `↓` `←` `→` / `hjkl` | Move the selection |
+| `1`–`9` | Select the nth solution and apply it |
+| `PageUp` `PageDown` / `Home` `End` | Page / jump to first / last |
+| `Enter` | Apply the selected solution |
+| `d` | Delete the selected solution (press `d` again to confirm) |
+| `r` | Reload the solution file (after editing it elsewhere) |
+| `q` / `Esc` / `Ctrl-C` | Cancel, displays untouched |
 
-选择器**内联渲染**：不进备用屏幕、不清屏，就画在当前提示符下面，退出后留在终端历史里可以往上翻。界面文案全是英文，方便直接复制到 issue 里。
-
-### 脚本里用
+### Scripting
 
 ```bash
 $ mdp apply work --json | jq -r '.displays[] | "\(.display) → \(.actual[0]),\(.actual[1])"'
@@ -123,7 +118,7 @@ External Display · 1920x1080 → 0,0
 Built-in Display · 3024x1964 → 1920,268
 ```
 
-`--dry-run` 的 JSON 用 `from` / `to` / `match` 描述「打算怎么动」，`match` 是 `uuid` 还是回退匹配一眼可见：
+`--dry-run` JSON describes the intended change with `from`, `to` and `match` — the last one tells you whether the display was matched by UUID or by the size fallback:
 
 ```bash
 $ mdp apply work --dry-run --json | jq -r '.entries[] | "\(.display): (\(.from[0]),\(.from[1])) \(.match) → (\(.to[0]),\(.to[1]))"'
@@ -131,28 +126,28 @@ External Display · 1920x1080: (0,0) uuid → (0,0)
 Built-in Display · 3024x1964: (1920,268) uuid → (1920,268)
 ```
 
-## 配置文件
+## Solution file
 
-默认 `~/.config/mdp/solutions.toml`，可用 `--config` 或 `$MDP_CONFIG` 覆盖：
+Default location `~/.config/mdp/solutions.toml`, override with `--config` or `$MDP_CONFIG`:
 
 ```toml
 [[solution]]
 name = "work"
-description = "外接为主屏，笔记本放右边"
+description = "external as primary, laptop on the right"
 created_at = "2026-10-09T20:21:28+08:00"
 updated_at = "2026-10-09T20:21:28+08:00"
 
 [[solution.displays]]
 uuid = "F425DECB-68B1-4C44-A90E-E38EEE5257E4"
 name = "External Display"
-x = 0            # 全局坐标，原点 = 主屏左上角
+x = 0            # global coordinates, origin = top-left of the primary display
 y = 0
-width = 1920     # 逻辑尺寸（点）
+width = 1920     # logical size (points)
 height = 1080
 pixel_width = 1920
 pixel_height = 1080
 builtin = false
-primary = true   # ★ 这块是主屏
+primary = true   # ★ this one is the primary display
 
 [[solution.displays]]
 uuid = "37D8832A-2D66-02CA-B9F7-8F30A301B230"
@@ -167,90 +162,67 @@ builtin = true
 primary = false
 ```
 
-用 `[[solution]]` 数组而不是 map，是为了让**文件里的顺序 = `mdp list` 的顺序**，手动调整顺序直接改文件。写入是原子的（先写临时文件再 `rename`），中途断电不会写坏配置。
+Solutions are an array of tables rather than a map, so **the order in the file is the order in `mdp list`** — reorder them by editing the file. Writes are atomic (temp file, then `rename`), so a power cut cannot corrupt it.
 
-> 删掉 `description` / `updated_at` 这些可选字段不影响使用。
+> Dropping optional fields such as `description` or `updated_at` is fine.
 
-## 工作原理
+## How it works
 
-**显示器身份**用 `CGDisplayCreateUUIDFromDisplayID` 拿到的持久 UUID 作主键。`CGDirectDisplayID`（那个 `1` / `3` 之类的小整数）每次开机、每次插拔都会变，绝对不能当 key。
+Displays are keyed by the persistent UUID from `CGDisplayCreateUUIDFromDisplayID`. The `CGDirectDisplayID` (that little `1` / `3` integer) changes on every boot and every replug and must never be used as a key.
 
-**布局切换**是一次事务：
+Switching layouts is a single transaction:
 
 ```
 CGBeginDisplayConfiguration
-  → CGConfigureDisplayOrigin(主屏, 0, 0)      ← 原点在 (0,0) 的那块屏就是主屏
-  → CGConfigureDisplayOrigin(其他屏, x, y)
+  → CGConfigureDisplayOrigin(primary, 0, 0)   ← the display at origin (0,0) *is* the primary
+  → CGConfigureDisplayOrigin(other, x, y)
 CGCompleteDisplayConfiguration(kCGConfigurePermanently)
 ```
 
-- 主屏必须**第一个**下发：全局坐标系的原点跟着主屏走，先改主屏再摆其他屏才不会整体偏移
-- 中途任何一条配置失败 → `CGCancelDisplayConfiguration` 回滚
-- 用 `kCGConfigurePermanently`，布局重启 / 重新登录后仍生效
-- 提交后 sleep 120ms 回读真实位置 —— 窗口服务器是异步落地的，不能假设调用成功就等于生效
+- The primary display must be sent **first**: the global coordinate origin follows the primary, so moving the others first would shift everything.
+- Any failing configuration call triggers `CGCancelDisplayConfiguration`, rolling the whole thing back.
+- `kCGConfigurePermanently` makes the layout survive reboots and logins.
+- After committing it sleeps 120ms and reads the positions back — the window server applies changes asynchronously, so a successful call does not mean a successful layout.
 
-**只存位置和主屏，不存分辨率 / 刷新率。** 切分辨率的风险远大于收益，真要切用系统设置更合适。存的 `pixel_width` / `pixel_height` 只用于 UUID 匹配不上时的回退识别。
+**Only positions and the primary display are stored — never resolution or refresh rate.** Switching resolution carries far more risk than value; use System Settings for that. The stored `pixel_width` / `pixel_height` exist solely to re-identify a display when its UUID no longer matches.
 
-## 已知限制
+## Known limitations
 
-- **macOS 会自动消除空隙和重叠。** 存下来的布局本来就无空隙，但如果两块屏之间的期望位置放不下，系统会挪到最近的可行位置。应用后 mdp 会回读并明确告诉你哪块屏没落在期望点上，而不是假装成功。
-- **镜像状态下不配置位置。** 系统设置里开了「镜像」的屏位置由主屏决定，mdp 会跳过并警告；给非主屏设置位置时系统会自动解除镜像（CoreGraphics 文档写明的行为）。
-- **显示器名字拿不到产品名。** Apple Silicon 上 `CGDisplayCreateDisplayFromIOKitPort` 已从 CoreGraphics 移除、`IODisplayConnect` 类也不再注册，所以名字只能是 `Built-in Display` / `External Display`（多块时带序号），区分靠尺寸 + UUID。
-- **UUID 匹配不上时的回退**：按「像素尺寸 + 内建 / 外接」匹配，**唯一候选才敢用**；有多个同尺寸候选就报歧义并跳过（宁可不动也不要错位），同时提示你重存一次方案。
-- **休眠的屏不会被配置**，只跳过并警告。
-- 需要 macOS 11+。
+- **macOS removes gaps and overlaps on its own.** Saved layouts never have gaps, but if the requested spot does not fit, the system puts the display as close as it can. mdp reads the real result back and tells you which display did not land where you wanted, instead of pretending it worked.
+- **Mirrored displays are not positioned.** In mirror mode a display's position follows its source, so mdp skips it and warns. Setting the origin of a non-source display removes it from the mirror set automatically — that is documented CoreGraphics behaviour.
+- **Display product names are unavailable.** On Apple Silicon, `CGDisplayCreateDisplayFromIOKitPort` has been removed from CoreGraphics and the `IODisplayConnect` class is no longer registered, so names can only be `Built-in Display` / `External Display` (numbered when there is more than one). Resolution and UUID tell them apart.
+- **UUID fallback:** if a UUID does not match, mdp falls back to matching by pixel size plus built-in/external. It only accepts a **unique** candidate; with several same-sized displays it reports the ambiguity and skips rather than guessing wrong. Re-store the solution to fix it.
+- **Sleeping displays are not configured**, only skipped with a warning.
+- Requires macOS 11+.
 
-## 开发
+## Development
 
 ```bash
-cargo test                                              # 匹配逻辑 + TOML 往返
+cargo test                                              # matching logic + TOML round-trip
 cargo clippy --all-targets -- -D warnings
 cargo fmt --all
 mise run check                                          # test + lint
 ```
 
-代码结构：
-
-| 文件 | 职责 |
+| File | Responsibility |
 | --- | --- |
-| `src/cg.rs` | CoreGraphics / CoreFoundation FFI，只封装公开 API |
-| `src/model.rs` | `Solution` / `Placement` 数据模型与校验 |
-| `src/store.rs` | 方案文件读写（原子写、路径解析） |
-| `src/apply.rs` | 方案 ↔ 显示器匹配、下发布局、回读校验 |
-| `src/tui.rs` | 内联渲染的两栏选择器（crossterm） |
-| `src/cli.rs` | clap 命令行定义 |
+| `src/cg.rs` | CoreGraphics / CoreFoundation FFI, public APIs only |
+| `src/model.rs` | `Solution` / `Placement` data model and validation |
+| `src/store.rs` | solution file IO (atomic writes, path resolution) |
+| `src/apply.rs` | matching solutions to displays, applying layouts, read-back verification |
+| `src/tui.rs` | inline two-pane picker (crossterm) |
+| `src/cli.rs` | clap command definitions |
 
-改动构建配置后跑 `cargo dist generate` 让 release workflow 与配置同步。发版流程见 [RELEASING.md](RELEASING.md)。
+After changing the build config, run `cargo dist generate` to sync the release workflow. See [RELEASING.md](RELEASING.md) for the release process.
 
-## 卸载
+## Uninstall
 
 ```bash
-brew uninstall mdp        # 或 brew untap sparrowx/tap
+brew uninstall mdp        # or brew untap sparrowx/tap
 ```
 
-方案文件不会被删除，它在 `~/.config/mdp/solutions.toml`，要删自己 `rm`（或者留着，换工具后还能用）。
+Your solution file is left alone at `~/.config/mdp/solutions.toml`; remove it yourself if you want.
 
 ## License
 
 [MIT](LICENSE)
-
----
-
-## English
-
-**mdp** — store and switch macOS multi-display layouts (positions + primary display) from the CLI.
-
-```bash
-brew tap sparrowx/tap && brew install sparrowx/tap/mdp
-
-mdp store work "external as primary, laptop on the right"
-mdp                      # picker: arrows to move, Enter to apply
-```
-
-- Stores per-display positions and which display is primary
-- Uses only public CoreGraphics APIs — **no Accessibility / Screen Recording permission**
-- Atomic layout transactions with rollback; reports when macOS nudges a display
-- JSON output for scripting (`mdp apply work --json`)
-- One text file at `~/.config/mdp/solutions.toml`, dotfiles-friendly
-
-Built with Rust. MIT licensed.
