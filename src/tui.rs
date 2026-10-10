@@ -15,8 +15,8 @@ use crate::apply::{self, Plan};
 use crate::cg::DisplayInfo;
 use crate::model::Solution;
 
-/// 标题行 + 按键提示行。
-const CHROME_TOP: u16 = 2;
+/// 按键提示行。
+const CHROME_TOP: u16 = 1;
 /// 左栏文字宽度。
 const LIST_COLS: u16 = 26;
 /// 分隔符占 1 列，再留 1 列空隙。
@@ -522,8 +522,7 @@ fn draw(
     let cols = frame.cols as usize;
     let base = frame.base;
 
-    paint(out, base, &header_spans(), cols)?;
-    paint(out, base + 1, &status_line(cols, overlay), cols)?;
+    paint(out, base, &status_line(cols, overlay), cols)?;
 
     let preview_x = LIST_COLS as usize + PREVIEW_GAP as usize;
     let two_col = two_col_fits(frame.cols);
@@ -607,7 +606,7 @@ struct Overlay<'a> {
     notice: Option<&'a str>,
 }
 
-/// 第二行：默认是按键提示，删除确认 / 操作结果会顶掉它。
+/// 首行：默认是按键提示，删除确认 / 操作结果会顶掉它。
 fn status_line(cols: usize, o: &Overlay) -> Vec<Span> {
     if let Some(name) = o.pending_delete {
         return vec![styled(
@@ -622,39 +621,6 @@ fn status_line(cols: usize, o: &Overlay) -> Vec<Span> {
         return vec![styled(fit(msg, cols), Style::fg(Color::Green))];
     }
     vec![styled(fit(HINT, cols), Style::fg(Color::DarkGrey))]
-}
-
-fn header_spans() -> Vec<Span> {
-    let mut v = Vec::new();
-    if let Some(name) = crate::cg::computer_name() {
-        v.push(styled(name, Style::fg(Color::White).bold()));
-        v.push(styled(" : ", Style::fg(Color::DarkGrey)));
-    }
-    v.push(styled(short_cwd(), Style::fg(Color::Cyan)));
-    v.push(styled(" ❯ ", Style::fg(Color::Green).bold()));
-    v.push(styled("mdp", Style::fg(Color::Green).bold()));
-    v
-}
-
-/// 当前目录：家目录下写 `~`，其余只显示最后一段（同 shell 提示符的习惯）。
-fn short_cwd() -> String {
-    let Ok(cwd) = std::env::current_dir() else {
-        return "~".to_string();
-    };
-    if let Some(home) = dirs::home_dir() {
-        if cwd == home {
-            return "~".to_string();
-        }
-        if let Ok(rest) = cwd.strip_prefix(&home) {
-            let rest = rest.to_string_lossy().trim_start_matches('/').to_string();
-            if let Some(last) = rest.rsplit('/').next().filter(|s| !s.is_empty()) {
-                return last.to_string();
-            }
-        }
-    }
-    cwd.file_name()
-        .map(|s| s.to_string_lossy().to_string())
-        .unwrap_or_else(|| "~".to_string())
 }
 
 /// 左栏一行：`❯ 1 * name`（`*` 表示该方案就是当前布局）

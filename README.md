@@ -4,8 +4,8 @@
 
 **macOS 多显示器布局管理 —— 把「每块屏放哪、哪块是主屏」存成方案，敲 `mdp` 选一下回车就切过去。**
 
-[![CI](https://github.com/define9/mdp/actions/workflows/ci.yml/badge.svg)](https://github.com/define9/mdp/actions/workflows/ci.yml)
-[![Release](https://github.com/define9/mdp/actions/workflows/release.yml/badge.svg)](https://github.com/define9/mdp/releases/latest)
+[![CI](https://github.com/sparrowx/mdp/actions/workflows/ci.yml/badge.svg)](https://github.com/sparrowx/mdp/actions/workflows/ci.yml)
+[![Release](https://github.com/sparrowx/mdp/actions/workflows/release.yml/badge.svg)](https://github.com/sparrowx/mdp/releases/latest)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-11%2B-42a5f5.svg)](https://www.apple.com/macos/)
 
@@ -42,26 +42,26 @@ Use ← → ↑ ↓ h j k l to navigate, Enter applies, d deletes, r reloads, q 
 ### Homebrew（推荐）
 
 ```bash
-brew tap define9/mdp
-brew install mdp
+brew tap sparrowx/tap
+brew install sparrowx/tap/mdp
 ```
 
 一条命令版本（Homebrew 会自动 tap）：
 
 ```bash
-brew install define9/mdp/mdp
+brew install sparrowx/tap/mdp
 ```
 
 ### curl | sh
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/define9/mdp/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/sparrowx/mdp/main/install.sh | sh
 ```
 
 ### 从源码
 
 ```bash
-git clone https://github.com/define9/mdp.git
+git clone https://github.com/sparrowx/mdp.git
 cd mdp
 cargo install --path .
 ```
@@ -225,7 +225,7 @@ mise run check                                          # test + lint
 ## 卸载
 
 ```bash
-brew uninstall mdp        # 或 brew untap define9/mdp
+brew uninstall mdp        # 或 brew untap sparrowx/tap
 ```
 
 方案文件不会被删除，它在 `~/.config/mdp/solutions.toml`，要删自己 `rm`（或者留着，换工具后还能用）。
@@ -241,7 +241,7 @@ brew uninstall mdp        # 或 brew untap define9/mdp
 **mdp** — store and switch macOS multi-display layouts (positions + primary display) from the CLI.
 
 ```bash
-brew tap define9/mdp && brew install mdp
+brew tap sparrowx/tap && brew install sparrowx/tap/mdp
 
 mdp store work "external as primary, laptop on the right"
 mdp                      # picker: arrows to move, Enter to apply

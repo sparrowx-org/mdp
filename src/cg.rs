@@ -92,26 +92,6 @@ extern "C" {
     fn CGDisplayCreateUUIDFromDisplayID(display: CGDirectDisplayID) -> *mut c_void;
 }
 
-#[link(name = "SystemConfiguration", kind = "framework")]
-extern "C" {
-    /// 「用户友好」的计算机名（系统设置里显示的那个），不是 `gethostname` 的 `xxx.local`。
-    /// 传 NULL 时不需要自己创建 store，返回 +1 引用。
-    fn SCDynamicStoreCopyComputerName(store: *const c_void, name: *mut c_void) -> *mut c_void;
-}
-
-/// 机器名，用于 TUI 标题栏。拿不到时回退到主机名。
-pub fn computer_name() -> Option<String> {
-    unsafe {
-        let name = SCDynamicStoreCopyComputerName(std::ptr::null(), std::ptr::null_mut());
-        if name.is_null() {
-            return None;
-        }
-        let out = cf_string_to_string(name);
-        CFRelease(name);
-        out.filter(|s| !s.is_empty())
-    }
-}
-
 /// 一块当前处于活动状态的显示器。
 #[derive(Clone, Debug)]
 pub struct DisplayInfo {

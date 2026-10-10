@@ -24,9 +24,10 @@ checksum = "sha256"
 # 给产物生成并附加 GitHub artifact attestation
 github-attestations = true
 
-# 一条命令装上：brew install define9/mdp/mdp
-# 需要先建一个空的 define9/homebrew-mdp 仓库（cargo-dist 会往里推 Formula/mdp.rb）
-tap = "define9/homebrew-mdp"
+# 一条命令装上：brew install sparrowx/tap/mdp
+# sparrowx/homebrew-tap 是 sparrowx 组织的公共 tap 仓，sparrowx 下的所有软件共用
+#（cargo-dist 只往里写自己那个 Formula/*.rb，互不覆盖）
+tap = "sparrowx/homebrew-tap"
 
 # 发版时顺便把 Homebrew formula 推到上面那个 tap 仓库
 publish-jobs = ["homebrew"]
