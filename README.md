@@ -1,11 +1,11 @@
 <div align="center">
 
-# mdp
+# multi-display (mdp)
 
 **Save your macOS multi-display layouts and switch them with one key — positions and primary display included.**
 
-[![CI](https://github.com/sparrowx/mdp/actions/workflows/ci.yml/badge.svg)](https://github.com/sparrowx/mdp/actions/workflows/ci.yml)
-[![Release](https://github.com/sparrowx/mdp/actions/workflows/release.yml/badge.svg)](https://github.com/sparrowx/mdp/releases/latest)
+[![CI](https://github.com/sparrowx-org/mdp/actions/workflows/ci.yml/badge.svg)](https://github.com/sparrowx-org/mdp/actions/workflows/ci.yml)
+[![Release](https://github.com/sparrowx-org/mdp/actions/workflows/release.yml/badge.svg)](https://github.com/sparrowx-org/mdp/releases/latest)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-11%2B-42a5f5.svg)](https://www.apple.com/macos/)
 
@@ -39,26 +39,26 @@ and read it later.
 ### Homebrew (recommended)
 
 ```bash
-brew tap sparrowx/tap
-brew install sparrowx/tap/mdp
+brew tap sparrowx-org/tap
+brew install sparrowx-org/tap/mdp
 ```
 
 Homebrew taps it for you if you skip the first line:
 
 ```bash
-brew install sparrowx/tap/mdp
+brew install sparrowx-org/tap/mdp
 ```
 
 ### curl | sh
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sparrowx/mdp/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/sparrowx-org/mdp/main/install.sh | sh
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/sparrowx/mdp.git
+git clone https://github.com/sparrowx-org/mdp.git
 cd mdp
 cargo install --path .
 ```
@@ -218,7 +218,7 @@ After changing the build config, run `cargo dist generate` to sync the release w
 ## Uninstall
 
 ```bash
-brew uninstall mdp        # or brew untap sparrowx/tap
+brew uninstall mdp        # or brew untap sparrowx-org/tap
 ```
 
 Your solution file is left alone at `~/.config/mdp/solutions.toml`; remove it yourself if you want.

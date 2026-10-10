@@ -1,11 +1,11 @@
 <div align="center">
 
-# mdp
+# multi-display (mdp)
 
 **macOS 多显示器布局管理 —— 把「每块屏放哪、哪块是主屏」存成方案，敲 `mdp` 选一下回车就切过去。**
 
-[![CI](https://github.com/sparrowx/mdp/actions/workflows/ci.yml/badge.svg)](https://github.com/sparrowx/mdp/actions/workflows/ci.yml)
-[![Release](https://github.com/sparrowx/mdp/actions/workflows/release.yml/badge.svg)](https://github.com/sparrowx/mdp/releases/latest)
+[![CI](https://github.com/sparrowx-org/mdp/actions/workflows/ci.yml/badge.svg)](https://github.com/sparrowx-org/mdp/actions/workflows/ci.yml)
+[![Release](https://github.com/sparrowx-org/mdp/actions/workflows/release.yml/badge.svg)](https://github.com/sparrowx-org/mdp/releases/latest)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/macOS-11%2B-42a5f5.svg)](https://www.apple.com/macos/)
 
@@ -36,26 +36,26 @@
 ### Homebrew（推荐）
 
 ```bash
-brew tap sparrowx/tap
-brew install sparrowx/tap/mdp
+brew tap sparrowx-org/tap
+brew install sparrowx-org/tap/mdp
 ```
 
 一条命令版本（Homebrew 会自动 tap）：
 
 ```bash
-brew install sparrowx/tap/mdp
+brew install sparrowx-org/tap/mdp
 ```
 
 ### curl | sh
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sparrowx/mdp/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/sparrowx-org/mdp/main/install.sh | sh
 ```
 
 ### 从源码
 
 ```bash
-git clone https://github.com/sparrowx/mdp.git
+git clone https://github.com/sparrowx-org/mdp.git
 cd mdp
 cargo install --path .
 ```
@@ -217,7 +217,7 @@ mise run check                                          # test + lint
 ## 卸载
 
 ```bash
-brew uninstall mdp        # 或 brew untap sparrowx/tap
+brew uninstall mdp        # 或 brew untap sparrowx-org/tap
 ```
 
 方案文件不会被删除，它在 `~/.config/mdp/solutions.toml`，要删自己 `rm`（或者留着，换工具后还能用）。
