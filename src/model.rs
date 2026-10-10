@@ -117,24 +117,24 @@ impl Solution {
                     p.name.clone()
                 }
             })
-            .unwrap_or_else(|| "无".to_string());
-        format!("{} 屏 · 主屏 {}", self.displays.len(), primary)
+            .unwrap_or_else(|| "none".to_string());
+        format!("{} displays · primary {}", self.displays.len(), primary)
     }
 }
 
 /// 方案名：允许中英文、数字、- _ .，禁止空白与 TOML / shell 敏感字符。
 pub fn validate_name(name: &str) -> Result<()> {
     if name.is_empty() {
-        bail!("方案名不能为空");
+        bail!("solution name cannot be empty");
     }
     if name.chars().count() > 64 {
-        bail!("方案名过长（最多 64 字符）");
+        bail!("solution name is too long (max 64 characters)");
     }
     if let Some(bad) = name
         .chars()
         .find(|c| c.is_whitespace() || "[]\"'\\=#.".contains(*c))
     {
-        bail!("方案名不能包含空白或字符 {bad:?}（允许中英文、数字、- _ / :）");
+        bail!("solution name cannot contain whitespace or {bad:?} (allowed: letters, digits, - _ / :)");
     }
     Ok(())
 }

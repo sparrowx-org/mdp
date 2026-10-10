@@ -47,31 +47,37 @@ pub enum Notice {
 impl Notice {
     pub fn render(&self, bullet: &str) -> String {
         match self {
-            Notice::Missing { uuid, label } => {
-                format!("{bullet} 方案里的 {label}（{}）当前未连接，已跳过", cg::uuid_head(uuid))
-            }
+            Notice::Missing { uuid, label } => format!(
+                "{bullet} {label} ({}) from this solution is not connected — skipped",
+                cg::uuid_head(uuid)
+            ),
             Notice::Ambiguous {
                 uuid,
                 label,
                 candidates,
             } => format!(
-                "{bullet} {label}（{}）对应哪块？{} 尺寸相同无法区分，已跳过——重存一次方案即可",
+                "{bullet} Which display is {label} ({})? {} all have the same size — skipped. Re-store the solution to fix it",
                 cg::uuid_head(uuid),
                 candidates.join(" / ")
             ),
-            Notice::Extra { label, uuid } => {
-                format!(
-                    "{bullet} 当前多出 {label}（{}），保持其现有位置不动",
-                    cg::uuid_head(uuid)
-                )
-            }
-            Notice::Fallback { uuid, label, matched } => format!(
-                "{bullet} {}（{}）UUID 对不上，按尺寸匹配到 {matched}——换过线/扩展坞？重存一次方案可修正",
-                label,
+            Notice::Extra { uuid, label } => format!(
+                "{bullet} {label} ({}) is not part of this solution — left where it is",
                 cg::uuid_head(uuid)
             ),
-            Notice::Drifted { label, target, actual } => format!(
-                "{bullet} {label} 期望 ({},{})，系统实际放在 ({},{})——macOS 会自动消除空隙与重叠",
+            Notice::Fallback {
+                uuid,
+                label,
+                matched,
+            } => format!(
+                "{bullet} {label} ({}) was matched by size to {matched} — different cable or dock? Re-store the solution to fix it",
+                cg::uuid_head(uuid)
+            ),
+            Notice::Drifted {
+                label,
+                target,
+                actual,
+            } => format!(
+                "{bullet} {label} wanted ({},{}) but ended up at ({},{}) — macOS removes gaps and overlaps on its own",
                 target.0, target.1, actual.0, actual.1
             ),
         }
@@ -319,11 +325,11 @@ pub fn describe_live(live: &[DisplayInfo]) -> String {
             } else {
                 String::new()
             },
-            if d.primary { "  ★ 主屏" } else { "" }
+            if d.primary { "  ★ primary" } else { "" }
         ));
     }
     if live.is_empty() {
-        s.push_str("(没有活动显示器)\n");
+        s.push_str("(no active display)\n");
     }
     s
 }

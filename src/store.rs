@@ -106,9 +106,9 @@ impl Store {
     pub fn rename(&mut self, from: &str, to: &str) -> Result<()> {
         let i = self
             .index_of(from)
-            .with_context(|| format!("方案 {from:?} 不存在"))?;
+            .with_context(|| format!("solution {from:?} does not exist"))?;
         if self.index_of(to).is_some() {
-            anyhow::bail!("方案 {to:?} 已存在");
+            anyhow::bail!("solution {to:?} already exists");
         }
         self.solutions[i].name = to.to_string();
         self.solutions[i].updated_at = crate::model::now_iso();
@@ -118,18 +118,19 @@ impl Store {
     /// 原子写：先写临时文件再 rename，避免写一半损坏配置。
     pub fn save(&self) -> Result<()> {
         if let Some(dir) = self.path.parent() {
-            fs::create_dir_all(dir).with_context(|| format!("创建目录 {} 失败", dir.display()))?;
+            fs::create_dir_all(dir)
+                .with_context(|| format!("failed to create {}", dir.display()))?;
         }
         let file = File {
             solution: self.solutions.clone(),
         };
         let mut text = String::new();
-        text.push_str("# mdp — 显示器布局方案。手动编辑安全，顺序即 mdp list 的顺序。\n");
-        text.push_str(&toml::to_string_pretty(&file).context("序列化方案失败")?);
+        text.push_str("# mdp display layout solutions. Safe to edit by hand; order here is the order in `mdp list`.\n");
+        text.push_str(&toml::to_string_pretty(&file).context("failed to serialize solutions")?);
         let tmp = self.path.with_extension("toml.tmp");
-        fs::write(&tmp, text).with_context(|| format!("写入 {} 失败", tmp.display()))?;
+        fs::write(&tmp, text).with_context(|| format!("failed to write {}", tmp.display()))?;
         fs::rename(&tmp, &self.path)
-            .with_context(|| format!("保存到 {} 失败", self.path.display()))?;
+            .with_context(|| format!("failed to save {}", self.path.display()))?;
         Ok(())
     }
 

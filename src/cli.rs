@@ -7,17 +7,17 @@ use std::path::PathBuf;
 #[command(
     name = "mdp",
     version,
-    about = "macOS 多显示器布局管理：存方案、切主屏、一键应用",
-    long_about = "macOS 多显示器布局管理。\n\n\
-无参数运行会打开交互选择器（方向键选择，回车立即应用）。\n\
-方案保存在 ~/.config/mdp/solutions.toml，只记录每块屏的位置与主屏。"
+    about = "macOS multi-display layouts: save solutions, switch primary, apply in one key",
+    long_about = "macOS multi-display layout manager.\n\n\
+Run with no arguments to open an interactive picker (arrows to move, Enter applies).\n\
+Solutions live in ~/.config/mdp/solutions.toml and record only positions and the primary display."
 )]
 pub struct Cli {
-    /// 方案文件路径（默认 ~/.config/mdp/solutions.toml，可用 $MDP_CONFIG 覆盖）
+    /// Solution file path (default ~/.config/mdp/solutions.toml, override with $MDP_CONFIG)
     #[arg(long, global = true, value_name = "PATH")]
     pub config: Option<PathBuf>,
 
-    /// 以 JSON 输出，便于脚本处理
+    /// Emit JSON for scripting
     #[arg(long, global = true)]
     pub json: bool,
 
@@ -27,57 +27,53 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum Command {
-    /// 把当前显示器布局存成一个方案
+    /// Save the current display layout as a solution
     Store {
-        /// 方案名
+        /// Solution name
         name: String,
-        /// 方案描述（可省略，多个词会用空格连接）
-        #[arg(trailing_var_arg = true, value_name = "描述")]
+        /// Optional description (multiple words are joined with spaces)
+        #[arg(trailing_var_arg = true, value_name = "description")]
         desc: Vec<String>,
-        /// 覆盖同名方案
+        /// Overwrite an existing solution with the same name
         #[arg(short, long)]
         force: bool,
     },
 
-    /// 应用一个方案
+    /// Apply a solution
     #[command(visible_alias = "use")]
     Apply {
         name: String,
-        /// 只显示将要发生的改动，不实际应用
+        /// Show what would change without applying it
         #[arg(long)]
         dry_run: bool,
-        /// 只对本次登录会话生效，不写永久配置
+        /// Only for the current login session, do not persist
         #[arg(long)]
         session: bool,
     },
 
-    /// 列出所有方案（与当前布局一致的会打 *）
+    /// List all solutions (* marks the one currently in use)
     #[command(visible_alias = "ls")]
     List,
 
-    /// 显示当前显示器布局
+    /// Show the current display layout
     Current,
 
-    /// 删除一个方案
-    #[command(visible_alias = "rm")]
-    Remove {
-        name: String,
-        #[arg(short, long)]
-        yes: bool,
-    },
+    /// Delete a solution
+    #[command(visible_aliases = ["rm", "remove"])]
+    Delete { name: String },
 
-    /// 重命名方案
+    /// Rename a solution
     Rename { from: String, to: String },
 
-    /// 查看单个方案的详情
+    /// Show one solution in detail
     Show { name: String },
 
-    /// 用 $EDITOR 打开方案文件
+    /// Open the solution file in $EDITOR
     Edit {
-        /// 可选：先定位到某个方案
+        /// Optional: validate that this solution exists first
         name: Option<String>,
     },
 
-    /// 打印方案文件路径
+    /// Print the solution file path
     Path,
 }

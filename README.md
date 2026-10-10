@@ -13,15 +13,15 @@
 
 ```
 $ mdp
- mdp · 选择方案
-▌1 * work                 work
- 2   swap                 外接为主屏，笔记本放右边
- 3   movie
-
-                          ★ External Display · 1920x1080
-                            (0,0) = (0,0)
-                            Built-in Display · 3024x1964
-                            (1920,268) ← (1512,0)
+luli的MacBook Pro : ~ ❯ mdp
+Use ← → ↑ ↓ h j k l to navigate, Enter applies, d deletes, r reloads, q quits
+❯ 1 * work                │ work  ★
+  2   desk                │ 外接为主屏，笔记本放右边
+                          │
+                          │ ★ External Display · 1920x1080
+                          │     (    0,    0)
+                          │   Built-in Display · 3024x1964
+                          │     ( 1920,  268)
 ```
 
 按 `↓` 选一个方案，右侧实时显示每块屏会移到哪、往哪个方向移；按 `Enter` 立即切换。
@@ -96,7 +96,7 @@ $ mdp
 | `mdp current` | 显示当前布局 |
 | `mdp show <名字>` | 方案详情 |
 | `mdp rename <旧> <新>` | 重命名 |
-| `mdp remove <名字> --yes` | 删除 |
+| `mdp delete <名字>` | 删除（别名 `rm` / `remove`） |
 | `mdp edit` | 用 `$EDITOR` 打开方案文件 |
 | `mdp path` | 打印方案文件路径 |
 
@@ -110,8 +110,11 @@ $ mdp
 | `1`–`9` | 选中第 N 项并直接应用 |
 | `PageUp` `PageDown` / `Home` `End` | 翻页 / 跳首尾 |
 | `Enter` | 应用选中方案 |
+| `d` | 删除选中方案（需再按一次 `d` 确认） |
 | `r` | 重新读取方案文件（外部改过之后用） |
 | `q` / `Esc` / `Ctrl-C` | 取消，不动显示器 |
+
+选择器**内联渲染**：不进备用屏幕、不清屏，就画在当前提示符下面，退出后留在终端历史里可以往上翻。界面文案全是英文，方便直接复制到 issue 里。
 
 ### 脚本里用
 
@@ -215,7 +218,7 @@ mise run check                                          # test + lint
 | `src/model.rs` | `Solution` / `Placement` 数据模型与校验 |
 | `src/store.rs` | 方案文件读写（原子写、路径解析） |
 | `src/apply.rs` | 方案 ↔ 显示器匹配、下发布局、回读校验 |
-| `src/tui.rs` | 两栏选择器（crossterm） |
+| `src/tui.rs` | 内联渲染的两栏选择器（crossterm） |
 | `src/cli.rs` | clap 命令行定义 |
 
 改动构建配置后跑 `cargo dist generate` 让 release workflow 与配置同步。发版流程见 [RELEASING.md](RELEASING.md)。

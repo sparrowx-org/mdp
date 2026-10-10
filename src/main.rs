@@ -1,4 +1,6 @@
 //! mdp —— macOS 多显示器布局管理。
+//!
+//! 所有面向用户的文案都是英文，方便在 issue 和终端里直接复制粘贴。
 
 mod apply;
 mod cg;
@@ -41,7 +43,7 @@ fn run() -> Result<()> {
         }) => cmd_apply(&ctx, &name, dry_run, session),
         Some(Command::List) => cmd_list(&ctx),
         Some(Command::Current) => cmd_current(&ctx),
-        Some(Command::Remove { name, yes }) => cmd_remove(&ctx, &name, yes),
+        Some(Command::Delete { name }) => cmd_delete(&ctx, &name),
         Some(Command::Rename { from, to }) => cmd_rename(&ctx, &from, &to),
         Some(Command::Show { name }) => cmd_show(&ctx, &name),
         Some(Command::Edit { name }) => cmd_edit(&ctx, name.as_deref()),
@@ -58,9 +60,9 @@ struct Ctx {
 /// 读取当前显示器。读不到说明系统层面出了问题，直接报错而不是当作空列表。
 fn live() -> Result<Vec<DisplayInfo>> {
     let displays = cg::list_displays()
-        .map_err(|e| anyhow!("读取显示器列表失败：{}", cg::cg_error_message(e)))?;
+        .map_err(|e| anyhow!("failed to read display list: {}", cg::cg_error_message(e)))?;
     if displays.is_empty() {
-        bail!("没有检测到活动显示器");
+        bail!("no active display found");
     }
     Ok(displays)
 }
@@ -77,26 +79,31 @@ fn join_desc(parts: &[String]) -> Option<String> {
 // ---------------------------------------------------------------- 交互选择器
 
 fn cmd_pick(ctx: &Ctx) -> Result<()> {
-    let store = Store::load(ctx.config.as_deref())?;
-    let path = store.path().to_path_buf();
     let config_path = ctx.config.clone();
     let live = live()?;
 
-    let chosen = tui::run(&live, &path, move || {
-        Ok(Store::load(config_path.as_deref())?.all().to_vec())
-    })?;
+    let chosen = tui::run(
+        &live,
+        || Ok(Store::load(config_path.as_deref())?.all().to_vec()),
+        |name| {
+            let mut s = Store::load(config_path.as_deref())?;
+            s.remove(name);
+            s.save()?;
+            Ok(Store::load(config_path.as_deref())?.all().to_vec())
+        },
+    )?;
 
     let Some(name) = chosen else {
-        println!("已取消，未做任何改动。");
+        println!("Cancelled, nothing changed.");
         return Ok(());
     };
 
     let store = Store::load(ctx.config.as_deref())?;
     let sol = store
         .get(&name)
-        .ok_or_else(|| anyhow!("方案 {name:?} 在选择过程中被删除了"))
-        .with_context(|| format!("方案文件：{}", store.path().display()))?;
-    let sol = sol.clone();
+        .ok_or_else(|| anyhow!("solution {name:?} was deleted while you were choosing"))
+        .with_context(|| format!("solution file: {}", store.path().display()))?
+        .clone();
     // dry_run = false：选择器里按回车就是要真正应用
     do_apply(ctx, &sol, &live, false, false)
 }
@@ -107,7 +114,9 @@ fn cmd_store(ctx: &Ctx, name: String, desc: Vec<String>, force: bool) -> Result<
     validate_name(&name)?;
     let mut store = Store::load(ctx.config.as_deref())?;
     if store.get(&name).is_some() && !force {
-        bail!("方案 {name:?} 已存在。要覆盖请加 --force：mdp store {name} --force",);
+        bail!(
+            "solution {name:?} already exists, pass --force to overwrite: mdp store {name} --force"
+        );
     }
     let live = live()?;
     let solution = Solution::capture(&name, join_desc(&desc), &live);
@@ -125,7 +134,10 @@ fn cmd_store(ctx: &Ctx, name: String, desc: Vec<String>, force: bool) -> Result<
         println!("{}", serde_json::to_string_pretty(&json)?);
         return Ok(());
     }
-    println!("已存方案 {name:?}（{n} 屏）→ {}", store.path().display());
+    println!(
+        "Saved \"{name}\" ({n} displays) → {}",
+        store.path().display()
+    );
     for d in &live {
         println!(
             "  {}{} ({},{}) {}",
@@ -133,10 +145,10 @@ fn cmd_store(ctx: &Ctx, name: String, desc: Vec<String>, force: bool) -> Result<
             d.label(),
             d.x,
             d.y,
-            if d.primary { "主屏" } else { "" }
+            if d.primary { "primary" } else { "" }
         );
     }
-    println!("\n随时 `mdp` 打开选择器，或 `mdp apply {name}` 应用。");
+    println!("\nRun `mdp` any time to switch back, or `mdp apply {name}`.");
     Ok(())
 }
 
@@ -146,7 +158,7 @@ fn cmd_apply(ctx: &Ctx, name: &str, dry_run: bool, session: bool) -> Result<()> 
     let store = Store::load(ctx.config.as_deref())?;
     let sol = store
         .get(name)
-        .ok_or_else(|| anyhow!("方案 {name:?} 不存在。{}", found_hint(&store)))?
+        .ok_or_else(|| anyhow!("solution {name:?} does not exist. {}", found_hint(&store)))?
         .clone();
     let live = live()?;
     do_apply(ctx, &sol, &live, dry_run, session)
@@ -154,10 +166,10 @@ fn cmd_apply(ctx: &Ctx, name: &str, dry_run: bool, session: bool) -> Result<()> 
 
 fn found_hint(store: &Store) -> String {
     if store.is_empty() {
-        "还没有任何方案，用 `mdp store <名字>` 存一个".to_string()
+        "No solutions yet — store one with `mdp store <name>`.".to_string()
     } else {
         format!(
-            "现有方案：{}",
+            "Available: {}",
             store
                 .all()
                 .iter()
@@ -192,13 +204,13 @@ fn do_apply(
                         "to": if e.target.primary { json!([0, 0]) } else { json!([e.target.x, e.target.y]) },
                         "primary": e.target.primary,
                     })).collect::<Vec<_>>(),
-                    "notices": plan.notices.iter().map(|n| n.render("⚠")).collect::<Vec<_>>(),
+                    "notices": plan.notices.iter().map(|n| n.render("!")).collect::<Vec<_>>(),
                 }))?
             );
             return Ok(());
         }
         println!(
-            "方案 {:?} 将要做的改动（--dry-run，未实际应用）：",
+            "What \"{}\" would change (--dry-run, nothing applied):",
             sol.name
         );
         for e in &plan.entries {
@@ -219,7 +231,7 @@ fn do_apply(
             );
         }
         for n in &plan.notices {
-            println!("  {}", n.render("⚠"));
+            println!("  {}", n.render("!"));
         }
         return Ok(());
     }
@@ -241,24 +253,24 @@ fn do_apply(
                     "actual": [r.actual.0, r.actual.1],
                     "drifted": r.drifted(),
                 })).collect::<Vec<_>>(),
-                "notices": result.notices.iter().map(|n| n.render("⚠")).collect::<Vec<_>>(),
+                "notices": result.notices.iter().map(|n| n.render("!")).collect::<Vec<_>>(),
             }))?
         );
         return Ok(());
     }
 
     if result.skipped {
-        println!("没有可配置的显示器，布局未改动。");
+        println!("Nothing to configure, layout unchanged.");
         for n in &result.notices {
-            println!("  {}", n.render("⚠"));
+            println!("  {}", n.render("!"));
         }
         return Ok(());
     }
 
     println!(
-        "已应用方案 {:?}{}",
+        "Applied \"{}\"{}",
         sol.name,
-        if session { "（仅本次会话）" } else { "" }
+        if session { " (session only)" } else { "" }
     );
     for r in &result.rows {
         println!(
@@ -268,14 +280,14 @@ fn do_apply(
             r.actual.0,
             r.actual.1,
             if r.drifted() {
-                format!("  ← 期望 ({},{})", r.target.0, r.target.1)
+                format!("  ← wanted ({},{})", r.target.0, r.target.1)
             } else {
                 String::new()
             }
         );
     }
     for n in &result.notices {
-        println!("  {}", n.render("⚠"));
+        println!("  {}", n.render("!"));
     }
     Ok(())
 }
@@ -309,12 +321,15 @@ fn cmd_list(ctx: &Ctx) -> Result<()> {
     }
 
     if store.is_empty() {
-        println!("还没有方案（{}）", store.path().display());
-        println!("存一个：mdp store <名字> [描述]");
+        println!("No solutions yet ({})", store.path().display());
+        println!("Store one: mdp store <name> [description]");
         return Ok(());
     }
 
-    println!("方案（* 表示当前正在使用）  {}", store.path().display());
+    println!(
+        "Solutions (* = currently in use)  {}",
+        store.path().display()
+    );
     println!();
     for s in store.all() {
         println!(
@@ -327,7 +342,7 @@ fn cmd_list(ctx: &Ctx) -> Result<()> {
             println!("  {:<18}{}", "", d);
         }
     }
-    println!("\n`mdp` 打开选择器，`mdp apply <名字>` 直接应用。");
+    println!("\n`mdp` opens the picker, `mdp apply <name>` applies directly.");
     Ok(())
 }
 
@@ -358,8 +373,8 @@ fn cmd_current(ctx: &Ctx) -> Result<()> {
 
     print!("{}", apply::describe_live(&live));
     match store.active(&live) {
-        Some(s) => println!("\n当前布局 == 方案 {:?}", s.name),
-        None => println!("\n当前布局不匹配任何已存方案。"),
+        Some(s) => println!("\nCurrent layout matches solution \"{}\".", s.name),
+        None => println!("\nCurrent layout does not match any saved solution."),
     }
     Ok(())
 }
@@ -368,7 +383,7 @@ fn cmd_show(ctx: &Ctx, name: &str) -> Result<()> {
     let store = Store::load(ctx.config.as_deref())?;
     let sol = store
         .get(name)
-        .ok_or_else(|| anyhow!("方案 {name:?} 不存在。{}", found_hint(&store)))?
+        .ok_or_else(|| anyhow!("solution {name:?} does not exist. {}", found_hint(&store)))?
         .clone();
     let live = live().unwrap_or_default();
 
@@ -376,19 +391,19 @@ fn cmd_show(ctx: &Ctx, name: &str) -> Result<()> {
         println!("{}", serde_json::to_string_pretty(&sol)?);
         return Ok(());
     }
-    println!("方案 {:?}", sol.name);
+    println!("Solution \"{}\"", sol.name);
     if let Some(d) = &sol.description {
-        println!("描述    {d}");
+        println!("Description  {d}");
     }
-    println!("创建    {}", sol.created_at);
-    println!("更新    {}", sol.updated_at);
-    println!("文件    {}", store.path().display());
+    println!("Created      {}", sol.created_at);
+    println!("Updated      {}", sol.updated_at);
+    println!("File         {}", store.path().display());
     println!(
-        "状态    {}",
+        "Status       {}",
         if sol.is_active(&live) {
-            "当前正在使用"
+            "currently in use"
         } else {
-            "未启用"
+            "not in use"
         }
     );
     println!();
@@ -403,8 +418,8 @@ fn cmd_show(ctx: &Ctx, name: &str) -> Result<()> {
             p.x,
             p.y,
             match now {
-                Some(d) => format!("现在 ({},{})", d.x, d.y),
-                None => "当前未连接".to_string(),
+                Some(d) => format!("now ({},{})", d.x, d.y),
+                None => "not connected".to_string(),
             }
         );
     }
@@ -413,20 +428,21 @@ fn cmd_show(ctx: &Ctx, name: &str) -> Result<()> {
 
 // ---------------------------------------------------------------- 增删改
 
-fn cmd_remove(ctx: &Ctx, name: &str, yes: bool) -> Result<()> {
+fn cmd_delete(ctx: &Ctx, name: &str) -> Result<()> {
     let mut store = Store::load(ctx.config.as_deref())?;
     if store.get(name).is_none() {
-        bail!("方案 {name:?} 不存在。{}", found_hint(&store));
-    }
-    if !yes {
-        bail!(
-            "删除方案 {name:?} 会改动 {}。确认请加 --yes：mdp remove {name} --yes",
-            store.path().display()
-        );
+        bail!("solution {name:?} does not exist. {}", found_hint(&store));
     }
     store.remove(name);
     store.save()?;
-    println!("已删除方案 {name:?}");
+    if ctx.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&json!({"action": "delete", "name": name}))?
+        );
+        return Ok(());
+    }
+    println!("Deleted \"{name}\"");
     Ok(())
 }
 
@@ -435,7 +451,7 @@ fn cmd_rename(ctx: &Ctx, from: &str, to: &str) -> Result<()> {
     let mut store = Store::load(ctx.config.as_deref())?;
     store
         .rename(from, to)
-        .map_err(|e| anyhow!("{e}。{}", found_hint(&store)))?;
+        .map_err(|e| anyhow!("{e}. {}", found_hint(&store)))?;
     store.save()?;
     println!("{from:?} → {to:?}");
     Ok(())
@@ -449,19 +465,19 @@ fn cmd_edit(ctx: &Ctx, name: Option<&str>) -> Result<()> {
     let path = store.path().to_path_buf();
     if let Some(n) = name {
         if store.get(n).is_none() {
-            bail!("方案 {n:?} 不存在。{}", found_hint(&store));
+            bail!("solution {n:?} does not exist. {}", found_hint(&store));
         }
     }
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vi".to_string());
     let status = std::process::Command::new(&editor)
         .arg(&path)
         .status()
-        .with_context(|| format!("启动编辑器 {editor} 失败"))?;
+        .with_context(|| format!("failed to launch editor {editor}"))?;
     if !status.success() {
-        bail!("编辑器退出码 {}", status.code().unwrap_or(-1));
+        bail!("editor exited with status {}", status.code().unwrap_or(-1));
     }
     // 编辑完立刻校验，避免下次运行时才发现 TOML 写坏了
-    Store::load(ctx.config.as_deref()).context("编辑后的文件无法解析")?;
+    Store::load(ctx.config.as_deref()).context("the edited file does not parse")?;
     Ok(())
 }
 
