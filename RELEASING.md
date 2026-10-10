@@ -31,7 +31,10 @@ sparrowx-org/homebrew-tap     共用 tap 仓，Formula/ 里放所有软件的 fo
    - Resource owner：**SparrowX**（选组织，不要选个人账号，否则以后别人发版推不动）
    - Repository access：只选 `homebrew-tap`
    - Permissions：**Contents: Read and write**
-   - 生成后加到 `sparrowx-org/mdp` 的 secret：`Settings → Secrets and variables → Actions → New repository secret`，名字必须是 `HOMEBREW_TAP_TOKEN`
+   - 有效期给长一点（发版不频繁，过期后所有软件会同时停更）
+   - 生成后加到**组织级** secret：`sparrowx-org` → Settings → Secrets and variables → Actions → New repository secret，名字必须是 `HOMEBREW_TAP_TOKEN`，**Repository access 里勾上 `mdp`**（以及以后每个软件仓）
+
+   > 组织级 secret 默认不对任何仓生效，**新仓必须去这个页面重新勾一次**，漏勾的话 CI 里 `token` 为空，formula 推不上去。
 
    > 不配这个 secret 的话：Release 和二进制正常发布，只有 `brew install sparrowx-org/tap/mdp` 不会自动更新。
 
@@ -71,7 +74,7 @@ curl -fsSL https://raw.githubusercontent.com/sparrowx-org/mdp/main/install.sh | 
 
 1. 源码仓建在 `sparrowx-org/<tool>`，照这个仓的 `dist-workspace.toml` 抄一份，把 `tap` 改成 `"sparrowx-org/homebrew-tap"`，`targets` 按平台调整。
 2. `cargo dist generate` 生成对应 workflow。
-3. 把 `HOMEBREW_TAP_TOKEN` 也加到 `sparrowx-org/<tool>` 的 secret 里（**每个软件仓都要加一遍**，token 是通用的）。
+3. 在组织 secret `HOMEBREW_TAP_TOKEN` 的 Repository access 里勾上新的 `sparrowx-org/<tool>` 仓（**组织级 secret 不会自动对新仓生效，漏勾就推不动 formula**）。
 4. 打 tag 发布，`sparrowx-org/homebrew-tap` 里就多出一个 `Formula/<tool>.rb`。
 
 ## 预发布
