@@ -13,7 +13,6 @@
 
 ```
 $ mdp
-luli的MacBook Pro : ~ ❯ mdp
 Use ← → ↑ ↓ h j k l to navigate, Enter applies, d deletes, r reloads, q quits
 ❯ 1 * work                │ work  ★
   2   desk                │ 外接为主屏，笔记本放右边

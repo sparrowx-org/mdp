@@ -180,11 +180,10 @@ impl Frame {
         let (cols, rows) = terminal::size()?;
         let need = CHROME_TOP + want_body;
 
-        // 光标停在提示符那一行，帧要画在它的下一行。
-        let cur_row = cursor::position()
-            .map(|(_, r)| r)
-            .unwrap_or_else(|_| rows.saturating_sub(1));
-        let mut base = cur_row + 1;
+        // 按下回车后 shell 已经把光标放到新一行的行首，帧就从那一行开始画；
+        // 只有光标不在行首（提示符后面还有残留）时才往下挪一行，否则会覆盖别人的东西。
+        let (col, row) = cursor::position().unwrap_or((0, rows.saturating_sub(1)));
+        let mut base = if col == 0 { row } else { row + 1 };
 
         if base + need > rows {
             // 多打几个换行把屏幕往上顶，滚动多少行 base 就减多少行。
@@ -222,14 +221,15 @@ impl Frame {
         self.height = CHROME_TOP + self.max_body;
     }
 
-    /// 退出后把光标放到帧下一行，让 shell 正常接着输出。
-    fn cursor_after(&self) -> (u16, u16) {
-        (
-            self.base
-                .saturating_add(self.height)
-                .min(self.rows.saturating_sub(1)),
-            0,
-        )
+    /// 退出后光标该停在哪：帧下一行的行首。
+    /// 返回的列固定是 0；行号超出屏幕时返回 None，交给调用方先打个换行让屏幕滚。
+    fn cursor_after(&self) -> Option<u16> {
+        let r = self.base.saturating_add(self.height);
+        if r >= self.rows {
+            None
+        } else {
+            Some(r)
+        }
     }
 }
 
@@ -320,9 +320,14 @@ where
 
     let result = event_loop(&mut out, &mut items, live, &reload, &delete, &mut frame);
 
-    let (r, c) = frame.cursor_after();
     terminal::disable_raw_mode().ok();
-    execute!(out, cursor::MoveTo(c, r), cursor::Show, Print("\n")).ok();
+    // 帧下面已经有空行就直接停那；屏幕没地方了就打一个换行让它滚上去。
+    // 不再多打一个 \n，否则会在帧和下一条命令之间多留一个空行。
+    match frame.cursor_after() {
+        Some(row) => execute!(out, cursor::MoveTo(0, row)).ok(),
+        None => execute!(out, Print("\n")).ok(),
+    };
+    execute!(out, cursor::Show).ok();
 
     result
 }
